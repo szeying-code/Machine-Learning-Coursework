@@ -20,6 +20,26 @@ The data came from a simplified I-SPY 2 trial dataset provided with the module (
    - `classification/`: logistic regression (L2), random forest, gradient boosting and SVM for pCR, evaluated with 5-fold cross-validation, with the feature selection repeated inside each fold.
    - `regression/`: XGBoost, random forest, MLP and KNN for RFS, evaluated on a held-out 20% of the patients.
 
+## Settings used
+
+| Step | Settings |
+|---|---|
+| Missing values | Coded as 999. Continuous features: mean imputation. Discrete features: KNN imputation with 5 neighbours. |
+| Outliers | Removed with the IQR rule (below Q1 - 1.5 x IQR or above Q3 + 1.5 x IQR). |
+| Feature selection | Top 20 features by combined Pearson and mutual-information rank, plus ER, HER2 and Gene, then Lasso (5-fold `LassoCV`, `random_state=42`) for RFS. Always done on the training data only. |
+| pCR evaluation | 5-fold stratified cross-validation (shuffled, `random_state=42`), features standardised inside each fold. |
+| pCR models | Logistic regression (L2, `liblinear`, balanced class weights); random forest (300 trees, balanced class weights); gradient boosting (300 trees, learning rate 0.05); SVM (RBF kernel, C = 1, `gamma='scale'`, balanced class weights). |
+| RFS evaluation | One 80/20 train/test split (`random_state=42`). |
+| RFS models | XGBoost (1300 trees, depth 3, learning rate 0.03, column sample 0.8, gamma 0.5); random forest (500 trees, no depth limit); MLP (layers 128-64-32, ReLU, Adam, learning rate 0.001, early stopping, up to 500 iterations, standardised inputs); KNN (Manhattan distance, standardised inputs, k from 1 to 30 and uniform or distance weights searched: the best was k = 16 with distance weights). |
+| Metrics | pCR: balanced accuracy, AUC, recall, F1. RFS: MAE, RMSE, MAPE, R². |
+
+## Why these choices
+
+- **Balanced accuracy and balanced class weights.** After cleaning, only 30 of the 166 patients have pCR (18%). A model that always says "no" would reach 82% plain accuracy, so balanced accuracy is the main pCR score and the models that support it use balanced class weights.
+- **Simple models did best.** With 166 patients and over a hundred features before selection, flexible models overfit. The group report found L2 logistic regression the most balanced pCR model (balanced accuracy 0.74, AUC 0.79, recall 0.83, F1 0.48), while gradient boosting scored lower on balanced accuracy (0.62 in the re-run) and the SVM's AUC was close to chance (0.50 in the re-run). For RFS, the distance-based KNN had the lowest error (MAE 24.18 against 26.63 to 28.59 for the other models), although none of the models explains much of the variation (R² of 0.05 at best).
+- **Feature selection inside the training data.** Choosing features using all the patients would let the test patients influence the choice, so selection is repeated on each training set. ER, HER2 and Gene are always kept because they are established clinical markers.
+- **Filter methods first, then Lasso.** Pearson correlation finds linear links, mutual information finds non-linear ones, and Lasso then removes features that add nothing once the others are included.
+
 ## Results (from the group report)
 
 **pCR classification** (Table II of the report): L2 logistic regression was the most balanced model.
@@ -72,9 +92,17 @@ The report should therefore be read as the team's recorded results, and the tabl
 - **Classification evaluation:** `classification.py` uses stratified 5-fold cross-validation, but `evaluation.py` (AUC, recall, F1) uses plain 5-fold, and picks the decision threshold from the out-of-fold predictions, which flatters recall and F1.
 - **Small sample after cleaning:** of the 400 patients, 166 remain after the cleaning step (30 of them with pCR), for both tasks.
 - Imputation and outlier removal were applied before the data was split.
+- `classification.py` standardises the features, but `evaluation.py` (AUC, recall, F1) does not, so the two scripts test slightly different set-ups.
+- **Not a ready-to-use workflow:** cleaning, feature selection and the models are separate scripts, with no saved pipeline that handles missing values by itself, so a new patient with missing values could not be scored directly.
 - With an R² close to zero, the RFS models are only slightly better than predicting the average.
 
-**What I would do next:** choose KNN's settings with cross-validation on the training data only, use repeated cross-validation for every final score, drop the SVM from the comparison or report its AUC over many seeds, and compare every model with a simple baseline.
+**What I would do next:** package the cleaning, feature selection and model into one scikit-learn pipeline that handles missing values by itself, choose KNN's settings with cross-validation on the training data only, use repeated cross-validation for every final score, drop the SVM from the comparison or report its AUC over many seeds, and compare every model with a simple baseline.
+
+## Feedback and what I would improve
+
+The marker described the development code as clearly commented, and the experimental design as well structured, with cross-validation and several evaluation metrics. The main criticisms were that the report needed more detail on parameter settings and a clearer link between modelling decisions and results, that there were no installation or run instructions, and that missing values were not handled inside a ready-to-use workflow.
+
+This repository addresses the first three points with the "Settings used" and "Why these choices" sections above and the run instructions below. The last point is still open: I would turn the cleaning, feature selection and model into a single pipeline that accepts patients with missing values.
 
 ## Repository contents
 
