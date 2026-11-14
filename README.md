@@ -61,7 +61,8 @@ The data came from a simplified I-SPY 2 trial dataset provided with the module (
 | **KNN** | **24.18** | **28.99** | **86.34** |
 
 The R² of KNN is only 0.05, and the R² of random forest and MLP is negative, so none of the models predicts RFS well.
-
+   
+- **Note on running the code:** most results above reproduce when the code is run (KNN and MLP for RFS, and L2 logistic regression for pCR). Two do not: the pCR random forest balanced accuracy (0.7487 when run, 0.5984 in the report) and the SVM's AUC, recall and F1 (0.5012, 0.10 and 0.17 when run, against 0.5431, 0.13 and 0.21 in the report). The SVM's AUC is close to chance and changes with the random seed, so it is not a stable result. A seed (`random_state=42`) was added to the SVM in this repository so that its results repeat.
 ## Limitations
 
 - **Regression evaluation:** the RFS models are scored on a **single 80/20 split** (`random_state=42`), so only 33 patients (20% of the 166 left after cleaning) are used for testing, and the numbers are noisy. The report describes cross-validation for both tasks, but `regressionWithEvaluation.py` uses one hold-out split.
