@@ -36,7 +36,7 @@ The data came from a simplified I-SPY 2 trial dataset provided with the module (
 ## Why these choices
 
 - **Balanced accuracy and balanced class weights.** After cleaning, only 30 of the 166 patients have pCR (18%). A model that always says "no" would reach 82% plain accuracy, so balanced accuracy is the main pCR score and the models that support it use balanced class weights.
-- **Simple models did best.** With 166 patients and over a hundred features before selection, flexible models overfit. The group report found L2 logistic regression the most balanced pCR model (balanced accuracy 0.74, AUC 0.79, recall 0.83, F1 0.48), while gradient boosting scored lower on balanced accuracy (0.62 in the re-run) and the SVM's AUC was close to chance (0.50 in the re-run). For RFS, the distance-based KNN had the lowest error (MAE 24.18 against 26.63 to 28.59 for the other models), although none of the models explains much of the variation (R² of 0.05 at best).
+- **Simple models did best.** With 166 patients and over a hundred features before selection, flexible models overfit. The group report found L2 logistic regression the most balanced pCR model (balanced accuracy 0.74, AUC 0.79, recall 0.83, F1 0.48), while gradient boosting scored lower on balanced accuracy (0.62 when the code is run) and the SVM's AUC was close to chance (0.50 when the code is run). For RFS, the distance-based KNN had the lowest error (MAE 24.18 against 26.63 to 28.59 for the other models), although none of the models explains much of the variation (R² of 0.05 at best).
 - **Feature selection inside the training data.** Choosing features using all the patients would let the test patients influence the choice, so selection is repeated on each training set. ER, HER2 and Gene are always kept because they are established clinical markers.
 - **Filter methods first, then Lasso.** Pearson correlation finds linear links, mutual information finds non-linear ones, and Lasso then removes features that add nothing once the others are included.
 
@@ -62,7 +62,8 @@ The data came from a simplified I-SPY 2 trial dataset provided with the module (
 
 The R² of KNN is only 0.05, and the R² of random forest and MLP is negative, so none of the models predicts RFS well.
    
-- **Note on running the code:** most results above reproduce when the code is run (KNN and MLP for RFS, and L2 logistic regression for pCR). Two do not: the pCR random forest balanced accuracy (0.7487 when run, 0.5984 in the report) and the SVM's AUC, recall and F1 (0.5012, 0.10 and 0.17 when run, against 0.5431, 0.13 and 0.21 in the report). The SVM's AUC is close to chance and changes with the random seed, so it is not a stable result. A seed (`random_state=42`) was added to the SVM in this repository so that its results repeat.
+**Note on running the code:** most results above reproduce when the code is run (KNN and MLP for RFS, and L2 logistic regression for pCR). Two do not: the pCR random forest balanced accuracy (0.7487 when run, 0.5984 in the report) and the SVM's AUC, recall and F1 (0.5012, 0.10 and 0.17 when run, against 0.5431, 0.13 and 0.21 in the report). The SVM's AUC is close to chance and changes with the random seed, so it is not a stable result. A seed (`random_state=42`) was added to the SVM in this repository so that its results repeat.
+
 ## Limitations
 
 - **Regression evaluation:** the RFS models are scored on a **single 80/20 split** (`random_state=42`), so only 33 patients (20% of the 166 left after cleaning) are used for testing, and the numbers are noisy. The report describes cross-validation for both tasks, but `regressionWithEvaluation.py` uses one hold-out split.
